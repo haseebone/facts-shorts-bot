@@ -14,7 +14,7 @@ import config
 
 GEMINI_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models/"
-    "gemini-2.5-flash:generateContent?key=" + config.GEMINI_API_KEY
+    "gemini-flash:generateContent?key=" + config.GEMINI_API_KEY
 )
 
 PROMPT_TEMPLATE = """You are writing a 30-45 second YouTube Shorts script for a "facts" \
