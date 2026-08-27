@@ -62,16 +62,19 @@ def upload_video(youtube, video_path, thumbnail_path, title, description):
     media = MediaFileUpload(video_path, chunksize=-1, resumable=True)
     request = youtube.videos().insert(part="snippet,status", body=body, media_body=media)
 
-    print("Uploading video...")
-    response = request.execute()
-    video_id = response["id"]
-    print(f"Uploaded! https://youtube.com/shorts/{video_id}")
+           print("Uploading video...")
+       response = request.execute()
+       video_id = response["id"]
+       print(f"Uploaded! https://youtube.com/shorts/{video_id}")
 
-    # Set custom thumbnail
-    youtube.thumbnails().set(videoId=video_id, media_body=MediaFileUpload(thumbnail_path)).execute()
-    print("Thumbnail set.")
+       try:
+           youtube.thumbnails().set(videoId=video_id, media_body=MediaFileUpload(thumbnail_path)).execute()
+           print("Thumbnail set.")
+       except Exception as e:
+           print(f"  [!] Could not set thumbnail (video is still live): {e}")
+           print("  [!] Tip: verify your channel at youtube.com/verify to enable custom thumbnails.")
 
-    return video_id
+       return video_id
 
 def main():
     youtube = get_authenticated_service()
