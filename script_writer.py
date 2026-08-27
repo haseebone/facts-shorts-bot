@@ -8,6 +8,7 @@ Output: script.json
 """
 import json
 import requests
+import time
 import config
 
 GEMINI_URL = (
@@ -43,7 +44,7 @@ def call_gemini(prompt: str) -> str:
         "contents": [{"parts": [{"text": prompt}]}]
     }
     last_error = None
-    for attempt in range(3):
+    for attempt in range(4):
         try:
             resp = requests.post(GEMINI_URL, json=body, timeout=90)
             resp.raise_for_status()
@@ -52,6 +53,10 @@ def call_gemini(prompt: str) -> str:
         except Exception as e:
             last_error = e
             print(f"  [!] Gemini attempt {attempt + 1} failed: {e}")
+            if attempt < 3:
+                wait = 10 * (attempt + 1)
+                print(f"      Waiting {wait}s before retrying...")
+                time.sleep(wait)
     raise last_error
 
 def clean_json_response(text: str) -> dict:
