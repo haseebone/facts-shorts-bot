@@ -1,0 +1,37 @@
+name: YouTube Shorts Auto Pipeline
+
+on:
+  schedule:
+    - cron: "0 13 * * *"
+    - cron: "0 1 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  make-and-upload-short:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Restore YouTube login token
+        run: echo "${{ secrets.YT_TOKEN_PICKLE_B64 }}" | base64 -d > token.pickle
+
+      - name: Restore YouTube client secret
+        run: echo "${{ secrets.YT_CLIENT_SECRET_B64 }}" | base64 -d > client_secret.json
+
+      - name: Run full pipeline
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+        run: python3 run_pipeline.py
