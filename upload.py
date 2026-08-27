@@ -8,8 +8,6 @@ IMPORTANT — one-time manual step required:
 YouTube requires you to personally approve access ONCE (Google's
 security rule, can't be skipped). After that one-time approval,
 this runs fully unattended forever using a saved "refresh token."
-
-See README.md section "YouTube API setup" for exact steps.
 """
 
 import json
@@ -26,8 +24,6 @@ CLIENT_SECRET_FILE = "client_secret.json"
 
 def get_authenticated_service():
     creds = None
-
-    # Reuse saved login if we have one (this is what makes it "unattended")
     if os.path.exists(TOKEN_FILE):
         with open(TOKEN_FILE, "rb") as f:
             creds = pickle.load(f)
@@ -36,7 +32,6 @@ def get_authenticated_service():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            # ONE-TIME ONLY: opens a browser for you to approve access
             flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRET_FILE, SCOPES)
             creds = flow.run_local_server(port=0)
 
@@ -51,7 +46,7 @@ def upload_video(youtube, video_path, thumbnail_path, title, description):
             "title": title[:100],
             "description": description,
             "tags": ["facts", "shorts", "didyouknow"],
-            "categoryId": "27",  # Education
+            "categoryId": "27",
         },
         "status": {
             "privacyStatus": "public",
@@ -62,19 +57,19 @@ def upload_video(youtube, video_path, thumbnail_path, title, description):
     media = MediaFileUpload(video_path, chunksize=-1, resumable=True)
     request = youtube.videos().insert(part="snippet,status", body=body, media_body=media)
 
-           print("Uploading video...")
-       response = request.execute()
-       video_id = response["id"]
-       print(f"Uploaded! https://youtube.com/shorts/{video_id}")
+    print("Uploading video...")
+    response = request.execute()
+    video_id = response["id"]
+    print(f"Uploaded! https://youtube.com/shorts/{video_id}")
 
-       try:
-           youtube.thumbnails().set(videoId=video_id, media_body=MediaFileUpload(thumbnail_path)).execute()
-           print("Thumbnail set.")
-       except Exception as e:
-           print(f"  [!] Could not set thumbnail (video is still live): {e}")
-           print("  [!] Tip: verify your channel at youtube.com/verify to enable custom thumbnails.")
+    try:
+        youtube.thumbnails().set(videoId=video_id, media_body=MediaFileUpload(thumbnail_path)).execute()
+        print("Thumbnail set.")
+    except Exception as e:
+        print(f"  [!] Could not set thumbnail (video is still live): {e}")
+        print("  [!] Tip: verify your channel at youtube.com/verify to enable custom thumbnails.")
 
-       return video_id
+    return video_id
 
 def main():
     youtube = get_authenticated_service()
