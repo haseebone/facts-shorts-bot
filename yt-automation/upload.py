@@ -74,10 +74,17 @@ def upload_video(youtube, video_path, thumbnail_path, title, description):
     return video_id
 
 def main():
+    youtube = get_authenticated_service()
+    print("\nLogin successful! token.pickle has been created.\n")
+
+    if not os.path.exists("script.json"):
+        print("No script.json yet (that's created when the full pipeline runs).")
+        print("One-time login setup is complete - you're done with this step.")
+        return
+
     with open("script.json", "r") as f:
         script_data = json.load(f)
 
-    youtube = get_authenticated_service()
     upload_video(
         youtube,
         video_path="final_video.mp4",
