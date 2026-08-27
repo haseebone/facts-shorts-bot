@@ -8,6 +8,8 @@ IMPORTANT — one-time manual step required:
 YouTube requires you to personally approve access ONCE (Google's
 security rule, can't be skipped). After that one-time approval,
 this runs fully unattended forever using a saved "refresh token."
+
+See README.md section "YouTube API setup" for exact steps.
 """
 
 import json
@@ -24,6 +26,8 @@ CLIENT_SECRET_FILE = "client_secret.json"
 
 def get_authenticated_service():
     creds = None
+
+    # Reuse saved login if we have one (this is what makes it "unattended")
     if os.path.exists(TOKEN_FILE):
         with open(TOKEN_FILE, "rb") as f:
             creds = pickle.load(f)
@@ -32,6 +36,7 @@ def get_authenticated_service():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
+            # ONE-TIME ONLY: opens a browser for you to approve access
             flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRET_FILE, SCOPES)
             creds = flow.run_local_server(port=0)
 
@@ -46,7 +51,7 @@ def upload_video(youtube, video_path, thumbnail_path, title, description):
             "title": title[:100],
             "description": description,
             "tags": ["facts", "shorts", "didyouknow"],
-            "categoryId": "27",
+            "categoryId": "27",  # Education
         },
         "status": {
             "privacyStatus": "public",
@@ -62,6 +67,8 @@ def upload_video(youtube, video_path, thumbnail_path, title, description):
     video_id = response["id"]
     print(f"Uploaded! https://youtube.com/shorts/{video_id}")
 
+    # Thumbnail upload requires phone-verified channel — don't let a failure
+    # here undo the successful video upload.
     try:
         youtube.thumbnails().set(videoId=video_id, media_body=MediaFileUpload(thumbnail_path)).execute()
         print("Thumbnail set.")
@@ -71,13 +78,29 @@ def upload_video(youtube, video_path, thumbnail_path, title, description):
 
     return video_id
 
+def mark_topic_used(topic: str):
+    """Add this topic to used_topics.json so it's never picked again."""
+    used = []
+    if os.path.exists("used_topics.json"):
+        with open("used_topics.json", "r") as f:
+            used = json.load(f)
+    key = topic.lower()
+    if key not in [u.lower() for u in used]:
+        used.append(topic)
+    with open("used_topics.json", "w") as f:
+        json.dump(used, f, indent=2)
+
 def main():
+    # Authenticate FIRST — this is what creates token.pickle for one-time setup.
+    # (If you're just doing the one-time login approval, it's normal to stop
+    # here if script.json doesn't exist yet — that file only gets created
+    # later when the full pipeline runs.)
     youtube = get_authenticated_service()
     print("\nLogin successful! token.pickle has been created.\n")
 
     if not os.path.exists("script.json"):
         print("No script.json yet (that's created when the full pipeline runs).")
-        print("One-time login setup is complete - you're done with this step.")
+        print("One-time login setup is complete — you're done with this step.")
         return
 
     with open("script.json", "r") as f:
@@ -90,6 +113,12 @@ def main():
         title=script_data["title"],
         description=script_data["description"],
     )
+
+    # Remember this topic so it's never used again in a future run
+    source_topic = script_data.get("source_topic")
+    if source_topic:
+        mark_topic_used(source_topic)
+        print(f"Marked topic as used: {source_topic}")
 
 if __name__ == "__main__":
     main()
